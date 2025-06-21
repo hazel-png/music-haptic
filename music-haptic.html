@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Music Vibe</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f8f8f8;
+      color: #222;
+      text-align: center;
+      padding: 2em;
+    }
+    input, button {
+      font-size: 1.1em;
+      padding: 0.6em 1em;
+      border: none;
+      border-radius: 10px;
+      margin: 1em;
+      width: 80%;
+      max-width: 400px;
+    }
+    button {
+      background: #007aff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎵 Music Vibe</h1>
+  <p>音源URLを入力して、低音を感じよう</p>
+  <input id="urlInput" type="text" placeholder="https://example.com/track.mp3" />
+  <br>
+  <button onclick="startVibe()">再生＆バイブ開始</button>
+
+  <script>
+    let audio, context, analyser, source, dataArray, lastVibe = 0;
+
+    async function startVibe() {
+      const url = document.getElementById("urlInput").value;
+      if (!url) return alert("音源URLを入力してね");
+
+      // Audioセットアップ
+      audio = new Audio(url);
+      audio.crossOrigin = "anonymous";
+      context = new AudioContext();
+      source = context.createMediaElementSource(audio);
+      analyser = context.createAnalyser();
+      analyser.fftSize = 64;
+
+      const bufferLength = analyser.frequencyBinCount;
+      dataArray = new Uint8Array(bufferLength);
+
+      source.connect(analyser);
+      analyser.connect(context.destination);
+      audio.play();
+
+      monitor();
+    }
+
+    function monitor() {
+      analyser.getByteFrequencyData(dataArray);
+
+      // 低音だけ（例：0～10 ≒ 0～100Hzあたり）
+      const lowFreq = dataArray.slice(0, 10);
+      const lowAvg = lowFreq.reduce((a, b) => a + b, 0) / lowFreq.length;
+
+      const now = performance.now();
+      if (lowAvg > 130 && now - lastVibe > 180) {
+        navigator.vibrate(40); // ドンッと1発
+        lastVibe = now;
+      }
+
+      requestAnimationFrame(monitor);
+    }
+  </script>
+</body>
+</html>
